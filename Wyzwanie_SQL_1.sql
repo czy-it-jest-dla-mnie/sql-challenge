@@ -54,30 +54,84 @@ VALUES
 --ZADANIA
 
 /* 1. Wypisz wszystkie wydatki z tabeli Expenses które powiązane są z użytkownikiem 'Filip'
-   w kolejności od najnowszych do najstarszych 
+   w kolejności od najnowszych do najstarszych */
+
+SELECT * 
+FROM Expenses 
+WHERE userid = 1 
+ORDER BY date DESC
    
-   2. Wypisz wszystkie wydatki użytkownika 'Filip' i 'Damian' które zostały wykonane w sklepie 'Lidl'
+/*  2. Wypisz wszystkie wydatki użytkownika 'Filip' i 'Damian' które zostały wykonane w sklepie 'Lidl' */
+
+SELECT * 
+FROM Expenses 
+WHERE storename = 'Lidl' AND userid = 1 OR storename = 'Lidl' AND userid = 2
    
-   3. Wypisz jaka jest cena najdroższego wydatku dla użytkownika 'Filip'
+/*  3. Wypisz jaka jest cena najdroższego wydatku dla użytkownika 'Filip' */
+
+SELECT TOP 1 price 
+FROM Expenses
+WHERE userid = 1
+ORDER BY price DESC
    
-   4. Podlicz i wypisz ile sumarycznie wydał użytkownik 'Damian' na mięso w miesiącu 'Marzec'
+/*  4. Podlicz i wypisz ile sumarycznie wydał użytkownik 'Damian' na mięso w miesiącu 'Marzec' */
+
+SELECT SUM(price)
+FROM Expenses
+WHERE userid = 2 AND title = 'Mięso' AND date LIKE '%-03-%'
    
-   5.  Wypisz wszystkie wydatki wszystkich użytkowników które mają dodany opis
+/*  5.  Wypisz wszystkie wydatki wszystkich użytkowników które mają dodany opis */
+
+SELECT *
+FROM Expenses
+WHERE description IS NOT null
    
-   6. Podlicz i wypisz ile średnio wydawał użytkownik 'Damian' na mięso
+/*  6. Podlicz i wypisz ile średnio wydawał użytkownik 'Damian' na mięso */
+
+SELECT AVG(price)
+FROM Expenses
+WHERE title = 'Mięso' AND userid = 2
    
-   7. Podlicz i wypisz za pomocą jednego zapytania ile wydał łącznie Filip oraz Damian dnia 07.03.2022.
-      Wypisz wynik w postaci dwóch kolumn: Użytkownik, Kwota. 
-      
-   Zadania z *
+/*  7. Podlicz i wypisz za pomocą jednego zapytania ile wydał łącznie Filip oraz Damian dnia 07.03.2022.
+      Wypisz wynik w postaci dwóch kolumn: Użytkownik, Kwota. */
+
+SELECT Users.Firstname, SUM(Expenses.Price) AS SUM_price
+from Users INNER JOIN Expenses ON Users.id = Expenses.UserId
+WHERE Date LIKE '2022-03-07%'
+GROUP BY Users.FirstName
    
-   6. Wypisz wszytkie wydatki wszystkich użytkowników łączac dane z tabeli Expenses z danymi z tabeli 
+/* Zadania z *
+   
+/* 6. Wypisz wszytkie wydatki wszystkich użytkowników łączac dane z tabeli Expenses z danymi z tabeli 
       Users za pomocą komendy JOIN - w formie:
-      FirstName, LastName, Title, Price 
-   
-   7. Podlicz i wypisz ile średnio wydaje Damian i Filip w każdym miesiącu na mięso
-  
-   */
+      FirstName, LastName, Title, Price */
 
+SELECT Users.firstname, Users.lastname, Expenses.title, Expenses.price
+FROM Users
+INNER JOIN Expenses ON Users.id = Expenses.UserId
 
+/*  7. Podlicz i wypisz ile średnio wydaje Damian i Filip w każdym miesiącu na mięso */
 
+/* Dla Damiana i Filipa łącznie */
+SELECT DATENAME(Month, date) AS Month, AVG(price) AS AVG_Price
+FROM Expenses
+WHERE title = 'Mięso'
+GROUP BY DATENAME(Month, date), MONTH(date)
+ORDER by MONTH(date)
+
+/* Dla Damiana i Filipa rozdzielnie */
+SELECT DATENAME(Month, Expenses.date) AS Month,
+Users.FirstName,
+AVG(Expenses.price) AS AVG_Price
+FROM Users
+INNER JOIN Expenses ON Users.id = Expenses.UserId
+WHERE title = 'Mięso'
+GROUP BY DATENAME(Month, Expenses.date), MONTH(Expenses.date), Users.firstname
+ORDER by MONTH(date)
+
+/* Jako ciekawostkę, powyższe próbowałem wykonać również wykorzystując subquery, niestety napotkałem poniżej opisane problemy, których nie umiałem rozwiązać */
+SELECT MONTH(date) AS Month, 
+(SELECT AVG(price) FROM Expenses WHERE title = 'Mięso' AND userid = 1) AS Filip, /* subquery Filip i Damian nie zwracają wartości odpowiedniej dla danego miesiąca, tylko w każdym miesiącu taką samą - nie potrafię sobie poradzić z powiązaniem subquery z query */
+(SELECT AVG(price) FROM Expenses WHERE title = 'Mięso' AND userid = 2) AS Damian /* próbowałem dodać aliasy do query i subquery, jednak nie udało mi się zrobić powiązania, które zwracałoby poprawne wartości */
+FROM Expenses
+GROUP BY MONTH(date)
